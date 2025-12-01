@@ -29,3 +29,54 @@ def neg_pr_auc_pytorch(y_pred: torch.Tensor, y_true: torch.Tensor) -> float:
     pr_auc = auc(recall, precision)
     return torch.tensor([-pr_auc]) # make the torch output
 
+
+def sample_pos_neg(y, num_pos, num_neg_per_pos):
+    """
+    y:         tensor of shape [N], binary labels
+    mask:      boolean mask selecting which nodes to sample from
+    num_pos:   number of positive samples (P)
+    num_neg_per_pos: number of negatives per positive (K)
+    
+    Returns:
+        pos_idx: shape [P]
+        neg_idx: shape [P, K]
+    """
+    # Valid nodes according to mask
+    valid_idx = torch.tensor(range(len(y)))
+    pos_pool = valid_idx[y.detach().cpu() == 1]
+    neg_pool = valid_idx[y.detach().cpu() == 0]
+
+    # Sample P positives
+    pos_idx = pos_pool[torch.randint(0, len(pos_pool), (num_pos,))]
+
+    # Sample P*K negatives
+    K = num_neg_per_pos
+    neg_idx = neg_pool[torch.randint(0, len(neg_pool), (num_pos * K,))]
+    neg_idx = neg_idx.view(num_pos, K)   # reshape → [P, K]
+
+    return pos_idx, neg_idx
+
+def bpr_loss_from_indices(y_pred, pos_idx, neg_idx):
+    """
+    y_pred: [N] scores from model
+    pos_idx: [P]
+    neg_idx: [P, K]
+    """
+    pos_scores = y_pred[pos_idx]               # shape [P]
+    neg_scores = y_pred[neg_idx]               # shape [P, K]
+
+    # BPR loss: maximize pos - neg
+    loss = -torch.log(torch.sigmoid(pos_scores.unsqueeze(1) - neg_scores))
+    return loss.mean()
+
+def compute_bpr_loss(y_pred, y, num_pos=32, neg_per_pos=3):
+    # num_pos use all 
+    num_pos = max(int(y.sum().detach().item()), num_pos)
+    pos_idx, neg_idx = sample_pos_neg(
+        y=y,
+        num_pos=num_pos,
+        num_neg_per_pos=neg_per_pos
+    )
+    
+    return bpr_loss_from_indices(y_pred, pos_idx, neg_idx)
+
