@@ -172,6 +172,15 @@ if __name__ == '__main__':
                                 'graph_type' : 'graph_weight',
                                 'warmup' : None
                                 },
+                      'ngnn_bpr_' + layer[:3].lower() : {
+                                'hyperparameters' : ['hidden_channels','dropout'],
+                                'loss_fn_name' : 'bpr',
+                                'layer': layer,
+                                'edge_type' : edge_type, 
+                                'output_channels': 1, # ---------> to be confirme!
+                                'graph_type' : 'graph',
+                                'warmup' : None
+                                },
                         # subgraph method 
                         'ggnn_ce_' + layer[:3].lower() : {
                                         'hyperparameters'  : ['internal_hidden_channels','internal_dropout', 'output_hidden_channels', 'output_dropout'],
@@ -229,6 +238,15 @@ if __name__ == '__main__':
                                         'output_channels': 2,
                                         'graph_type' : 'subgraph_weight',
                                         'warmup' : None
+                                        },
+                         'ggnn_bpr_' + layer[:3].lower() : {
+                                        'hyperparameters'  : ['internal_hidden_channels','internal_dropout', 'output_hidden_channels', 'output_dropout'],
+                                        'loss_fn_name' : 'bpr',
+                                        'layer': layer,
+                                        'edge_type' : edge_type, 
+                                        'output_channels': 1,
+                                        'graph_type' : 'subgraph',
+                                        'warmup' : None
                                         }
                         }
         configerations.update(hyperparameters)
@@ -236,4 +254,5 @@ if __name__ == '__main__':
 
     print(new_hyperparameters)
     gnn(new_hyperparameters, graph_settings, early_stop_params, optuna_params, training_params)
+
     logger.close()
